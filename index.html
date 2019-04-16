@@ -1,0 +1,723 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800|Open+Sans+Condensed:300' rel='stylesheet' type='text/css'>
+<title>Faster indicators</title>
+<meta name="description" content="">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="../lib/globalStyle.css" />
+<link type="text/css" href="../lib/styles.css" rel="stylesheet" />
+<style type="text/css">
+
+		.row {
+			  margin-left: 0px;
+			  margin-right: 0px;
+			}
+
+		#key{
+			  display: block;
+			  /*stroke: #666;*/
+			  stroke-width:1px;
+			  shape-rendering: crispEdges;
+			  font-size:12px;
+				height:55px;
+				width:100%;
+				/*background-color: #abc;*/
+			}
+
+			#key text{
+				  stroke:none;
+          font-family: "Open Sans";
+          fill:#666;
+			}
+
+      .tick line {
+          stroke: #666;
+      }
+
+			#infoPanel
+				{
+          height: 35px;
+					top:30px;
+					padding: 0px 0px 20px 10px;
+
+				}
+				.infoText{
+							position:relative;
+							font-size: 15px;
+							color:#444;
+							font-weight:600;
+							/*text-anchor: start;*/
+						}
+
+						#births{
+							display:inline-block;
+							font-weight:600;
+								}
+
+						#info {
+							display:inline-block;
+								}
+
+						#rank{position:relative;
+								top:5px;
+								}
+						#info2{
+								top:5px;
+								}
+
+						.figures{
+							position:relative;
+							font-size: 12px;
+							font-weight:400;
+							text-anchor: middle;
+						}
+						.smallfigs{
+									position:relative;
+									font-size: 12px;
+									font-weight:400;
+									text-anchor: end;
+								}
+
+						.footer{
+							position:relative;
+							font-size: 14px;
+							color:#323132;
+							font-weight:700;
+							text-align:left;
+						}
+
+		@media screen and (max-width: 500px) {
+				.infoText{
+						font-size: 14px;
+						}
+				.smallfigs{
+							font-size: 11px;
+							font-weight:400;
+						}
+
+          .figures{
+            font-size: 11px;
+          }
+
+				g.tick major text{
+							font-size:14px;
+						}
+
+		}
+
+    	#graphic
+		{
+				position: relative;
+		}
+			#grid
+			{
+					position: relative;
+			}
+
+		.highlighted {
+			stroke:#206095; /* 07b3a6*/
+			stroke-width:2px;
+		}
+
+		.square{
+			stroke:#fff;
+			stroke-width:1px;
+		}
+
+    #keyunit{
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+		#left {
+			float:left;
+		}
+
+		#right {
+			float:right;
+			overflow: scroll;
+		}
+
+    </style>
+</head>
+<body>
+
+<div id="graphic">
+<img id="fallback" src="fallback.png" alt="[Chart]" />
+<div class="row" id="infoPanel"></div>
+<div class="row">
+<div class="col-xs-12" id="legnd"></div>
+<div id="left"></div>
+<div id="right"></div>
+<div id="fixed"></div>
+</div>
+</div>
+<div class="footer" />
+<script src="https://cdn.ons.gov.uk/vendor/jquery/2.1.4/jquery.min.js"></script>
+<script src="https://cdn.ons.gov.uk/vendor/pym/1.3.2/pym.v1-3-2.min.js" charset="utf-8"></script>
+<script src="https://cdn.ons.gov.uk/vendor/jquery-ui/1.12.1/jquery-ui.min.js"></script>
+<script src="lib/modernizr.custom.56904.js"></script>
+<script src="https://cdn.ons.gov.uk/vendor/d3/4.13.0/d3.min.js" type="text/javascript"></script>
+<script src="../lib/ss.js" type="text/javascript"></script>
+<script src="../lib/chroma.min.js"></script>
+<script>
+
+		var dvc = {};
+
+	function drawGraphic() {
+
+		var graphic = $('#graphic');
+		var infoPanel = $('#infoPanel');
+		var left = $('#left');
+		var right = $('#right');
+		var legnd = $('#legnd');
+		var footer = $(".footer");
+		var pymChild = null;
+
+		graphic_width = graphic.width();
+
+		   if (graphic.width()+15 < dvc.optional.mobileBreakpoint) {
+												dvc.margin = {	top: 	dvc.optional.margin_sm[0],
+																right: 	dvc.optional.margin_sm[1],
+																bottom:	dvc.optional.margin_sm[2],
+																left: 	dvc.optional.margin_sm[3]
+															};
+												}
+												else dvc.margin = {
+																top: 	dvc.optional.margin_lg[0],
+																right: 	dvc.optional.margin_lg[1],
+																bottom: dvc.optional.margin_lg[2],
+																left: 	dvc.optional.margin_lg[3]
+															};
+
+		graphic_width = parseInt(graphic.width()) - dvc.margin.left;
+
+		keywidth = $("#right").width();
+
+		// clear out existing graphics
+		d3.select("#fallback").remove();
+		infoPanel.empty();
+		left.empty();
+		legnd.empty();
+		footer.empty();
+		dvc.brickWidth = 7.5;
+		dvc.brickHeight = 30;
+
+		dvc.names = d3.keys(graphic_data[0])
+
+		dvc.numbers = d3.values(graphic_data)
+
+
+			// map the data to see it in columns for each header
+
+		    var block = {};
+		    for (var column in graphic_data[0]) {
+		      if (column == "yvals") continue;
+						if (column == "period") continue;
+							block[column] = graphic_data.map(function(d) {
+	              return {'amt': +d[column]};
+						  });
+	  	 }; // ends for loop
+
+
+			// Work out number of columns
+			columns = Object.keys( graphic_data[0] ),  // then taking the first row object and getting an array of the keys
+      numberofColumns = columns.length - 2;
+
+
+			//sumIndicators = [];
+			rowvalues = [];
+
+			graphic_data.forEach(function(d,i){
+					var mySum = 0;
+					rowvalues[i] = [];
+					columns.forEach(function(entry,j) {
+						//	rowvalues[i] = []
+						//console.log(entry + j)
+						if (entry === "yvals" || entry ==="period") {
+						} else {
+							if(typeof +d[entry] == "number" && d[entry]!="null"){
+								//	console.log(d[entry]);
+									rowvalues[i].push(+d[entry]);
+							}
+						} // everyone else into the sum
+			});
+
+
+					//sumIndicators[i] = mySum;
+
+			})
+
+		// Work out means and standard deviations
+		means = [];
+		stdDev = [];
+
+		rowvalues.forEach(function(d,i){
+					means[i] = d3.mean(d);
+					stdDev[i] = d3.deviation(d);
+
+		})
+
+		//Work out how many standard deviations away from the mean each value is
+		distances = [];
+
+		rowvalues.forEach(function(eachrow,i){
+			distances[i] = [];
+			eachrow.forEach(function(d,j){
+				//console.log(means[i]);
+						distances[i].push((d - means[i]) / stdDev[i]);
+			});
+		})
+
+
+		//get max length of nested arrays
+		maxvalues =0;
+		distances.forEach(function(dist,i){
+			length = dist.length;
+			maxvalues = d3.max([maxvalues,length])
+
+		})
+
+		//and generate structure of data
+		var block2 = {};
+
+	for (columnx = 0; columnx < maxvalues; columnx++) {
+			block2["x" + columnx] = distances.map(function(d) {
+				return {'amt': +d[columnx]};
+			});
+	}
+
+
+			n = Math.abs(numberofColumns/12); // Change to positive
+			var decimal = n - Math.floor(n);
+
+			endmonth = Math.round(decimal * 12);
+
+			startyear = 2008;
+			endyear = 2008 + Math.floor(numberofColumns/12);
+
+			formatDate = d3.timeFormat("%Y")
+
+			var dateRange = d3.timeMonths(new Date(startyear, 0, 1), new Date(endyear, (endmonth), 1));
+
+			x2 = d3.scaleTime()
+				 .domain([dateRange[0],dateRange[dateRange.length-1]])
+				 .range([0, (dvc.brickWidth * (numberofColumns-1))])
+
+
+			var xAxis2 = d3.axisTop(x2)
+					.tickSize(5)
+					.tickFormat(d3.timeFormat("%Y"));
+					//.tickValues(legendColor.domain());
+
+			console.log(x2.domain())
+
+			//create link to source
+			d3.select(".footer").append("p")
+				.html("Source: "+dvc.essential.sourceText);
+
+		//  Now let get the size of the heat map  // row=12
+		if(graphic.width() < dvc.optional.mobileBreakpoint) {
+			ratio = dvc.essential.brickRatio_S_M_L[0]; }
+		else if(graphic.width() < dvc.optional.tabletBreakpoint){
+			ratio = dvc.essential.brickRatio_S_M_L[1]; }
+    	else {
+			ratio = dvc.essential.brickRatio_S_M_L[2];
+		}
+
+
+
+		console.log(dvc.numbers.length)
+
+		myWidth = dvc.brickWidth * (Object.keys(block2).length) + dvc.margin.right;
+
+		myColumn = dvc.numbers.length;
+		myHeight = (myColumn -1)*dvc.brickHeight + dvc.margin.top + dvc.margin.bottom;
+		// divided by '2' because the blocks are rectangular
+		//console.log('myh  ' + myHeight);
+
+    if(typeof dvc.essential.varcolour === 'string') {
+			color=chroma.scale(dvc.essential.varcolour).colors(dvc.essential.numberBreaks)
+			dvc.colour=[]
+		  color.forEach(function(d){colour.push(chroma(d).darken(0.4).saturate(0.6).hex())})
+		} else {
+			dvc.colour = dvc.essential.varcolour;
+    }
+
+
+  	//  order the values to create breaks
+  	var values = [];
+  	allvalues = [];
+  	 for (var column in graphic_data[0]) {  // Jan - just sort one in ascending order for jenks
+          if (column != 'yvals' && column != 'period' ) {
+    		        values[column] =  graphic_data.map(function(d){
+                  return +eval("d." + column);
+                }).filter(function(d) {return !isNaN(d)});
+    		        allvalues = allvalues.concat(values[column]);
+  		      }
+      }
+
+      allvalues=allvalues.sort(d3.ascending);
+
+			console.log(allvalues)
+
+			// Use jenks if the option is set
+			if(dvc.essential.breaks =="jenks")
+				{breaks = ss.jenks(allvalues, dvc.essential.numberBreaks);}
+			else
+        {breaks = dvc.essential.breaks;};
+
+
+      	var colorScale = d3.scaleThreshold()
+      						.domain(breaks)
+      						.range(dvc.colour);
+
+	    // Let's get building
+
+		  d3.select("#left")
+			.attr("width",  dvc.margin.left + "px")
+			.append("svg")
+			.attr("id","smallfigsleft")
+			.attr("width", dvc.margin.left)
+			.attr("height", myHeight)
+
+
+		  d3.select("#right")
+			.style("width",  graphic_width + "px")
+			.append("svg")
+			.attr("id","grid")
+			.attr("width", myWidth)
+			.attr("height", myHeight)
+			// .attr("transform", "translate(0," + dvc.margin.top + ")");
+
+		//
+		// 	<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox="0 0 400 80">
+		//   <defs>
+		//     <linearGradient id="fadeGrad" y2="1" x2="0">
+		//       <stop offset="0.5" stop-color="white" stop-opacity="0"/>
+		//       <stop offset="1" stop-color="white" stop-opacity=".5"/>
+		//     </linearGradient>
+		//     <mask id="fade" maskContentUnits="objectBoundingBox">
+		//       <rect width="1" height="1" fill="url(#fadeGrad)"/>
+		//     </mask>
+		//   </defs>
+		// </svg>
+
+			d3.select("#fixed")
+				.style("position","absolute")
+				.style("left",dvc.margin.left + "px")
+				.style("top","100px")
+				.style("pointer-events","none")
+				.append("svg")
+				.attr("id","fixedfade")
+				.attr("height",myHeight)
+				.append("defs")
+				.attr("id","defss")
+				.append("linearGradient")
+				.attr("id","fadeGrad")
+				.attr("y2","0")
+				.attr("x1","1")
+				.attr("x2","0")
+				.append("stop")
+				.attr("offset","0.5")
+				.attr("stop-color","white")
+				.attr("stop-opacity","0");
+
+
+	d3.select("#fadeGrad")
+				.append("stop")
+				.attr("offset","1")
+				.attr("stop-color","white")
+				.attr("stop-opacity","1");
+
+	d3.select("defs")
+				.append("mask")
+				.attr("id","fade")
+				.attr("maskContentUnits","objectBoundingBox")
+				.append("rect")
+				.attr("width","1")
+				.attr("height","1")
+				.attr("fill","url(#fadeGrad)")
+
+
+
+
+
+
+				// use nested method to create parent Node for each month
+				allTiles = d3.select('#grid')
+								.append("g")
+								.attr("class","tiles")
+								.selectAll("g")
+								.data(d3.entries(block2) )  // top hierarchy of the mapped data. Variable is called 'amt'
+								.enter()
+								.append("g")
+								.attr("id", function(d,i){return "x_"+d.key })
+								// .attr("transform", function(d,i) {
+								// 	return "translate(" + i*dvc.brickWidth + ", " + 0 + ")";
+								// })
+
+          d3.select('#grid').append("g").attr("id","xaxis2").attr("transform", function(d,i) {
+						return "translate(30, " + (dvc.margin.top+20)  + ")";
+					}).call(xAxis2)
+
+
+					allTiles.selectAll('.tiles')
+					   	.data(function(d,i){return d.value})  // just give me the 'values' for each month/column. 'keys' not required
+							.enter()
+							.append("rect")
+							.attr("class","square")
+              .attr("data_value",function(d,i){return d.amt})
+							.attr("id", function(d,i,j) {return "sqr" +i; } )
+							.attr("x", function(d,i,j) {
+								console.log()
+								if(graphic_data[i].period == "quarter") {
+
+									return (d3.select(this.parentNode).datum().key.substr(1)) * (dvc.brickWidth * 3)
+								} else {
+									return (d3.select(this.parentNode).datum().key.substr(1)) * dvc.brickWidth
+								}
+							})
+							.attr("y",  function(d,i) {
+														return i*(dvc.brickHeight);
+														})
+							.attr("height", dvc.brickHeight )
+							.attr("width", function(d,i) {
+							//	console.log(graphic_data[i].period)
+								if(graphic_data[i].period == "quarter") {
+									return dvc.brickWidth * 3
+								} else {
+									return dvc.brickWidth
+								}
+							})
+              .attr("pointer-events", function(d,i){
+                 if (isNaN(d.amt) == true ){
+                    return "none"
+                 } else {
+                   return "auto"
+                 }
+              })
+							.style("fill", function(d,j) {
+								if(d.amt !== d.amt){ return '#fff';} // copy bg colour
+																	else{
+																		return colorScale(d.amt);
+																		}
+														})
+							.on("mouseout",removeInfo)
+							.on("mouseover", updateInfo)
+							.attr("transform","translate(30,"+(dvc.margin.top + 20)+")");  // plus string width
+
+
+				// scroll to far leftRightTitles
+				$('#right').scrollLeft($(document).outerWidth());
+
+				//Apply filter maskContentUnits
+				d3.select("#fixedfade")
+					.append("rect")
+					.attr("width","100")
+					.attr("height",myHeight +"px")
+					.attr("x",0)
+					.attr("fill","white")
+					.attr("mask","url(#fade)")
+
+					dvc.names.shift() // shift out the day value - 'yvals' and 'period'
+
+					dvc.names.shift() // shift out the day value and 'period'
+
+				var adding = d3.select('#grid');
+
+					  // adding.append('g').attr('class', 'figures')
+					  // 	.selectAll('text')
+						// 	//.data(dvc.names)
+						// 	.data(dateRange)
+						// 	.enter()
+						// 	.append("text")
+						// 	.style("fill", "#666")
+						// 	.attr("x",  function(d,i) {
+						// 						return (i*dvc.brickWidth);
+						// 						})
+						// 	//.text( function(d,i) {return d.replace("x", "");})
+						// 	.text( function(d,i) {if(i%12==0){return formatDate(d);} })
+						// 	.attr("transform","translate("+((dvc.brickWidth/2.4)+30)+","+(dvc.margin.top + 10)+")");
+
+
+					  d3.select("#smallfigsleft").append('g')
+					  		.selectAll('text')
+					  		.append('g')
+							.data(graphic_data)
+							.enter()
+							.append("text")
+							.attr("width", dvc.margin.left)
+							.style("fill", "#666")
+							.attr('class', 'smallfigs')
+							.attr("y",  function(d,i) {
+												return (i*(dvc.brickHeight));
+												})
+							.html(function(d,i) {return d.yvals})
+							.attr("transform", function(){return "translate("+(dvc.margin.left)+","+(dvc.margin.top + 37)+")"});
+
+        //wrap labels for small
+      	// if(graphic.width() < dvc.optional.tabletBreakpoint) {
+				d3.selectAll('text.smallfigs')//.call(wrap, dvc.margin.left)//+25);
+				// }
+
+		// add the info divs to populate in tellMe
+
+		myInfo = d3.select("#infoPanel")//.append('span');
+
+		 		 myInfo.append("div")
+						.attr("class", "infoText")// col-sm-2 col-xs-4")
+						.attr("id", "births")
+						//.text(dvc.essential.unittext)
+
+				  //myInfo
+				 myInfo.append("div")
+						.attr("class", "infoText")// col-sm-2 col-xs-3 text-center")
+						.attr("id", "info")
+						.html("&nbsp;");
+
+
+				createKey();
+
+		//use pym to calculate chart dimensions
+		    if (pymChild) {
+		        pymChild.sendHeight();
+		    	}
+
+	}; // end drawGraphic
+
+
+
+function updateInfo(evt){
+
+		currsel = d3.select(this)
+
+    //console.log(d3.select(this.parentNode).attr("transform"))
+    d3.select("#grid").select(".tiles")
+      .append("g")
+      .attr("id", "highlightedSquare")
+      //.attr("transform", d3.select(this.parentNode).attr("transform"))
+      .append("rect")
+      .attr("y", currsel.attr("y"))
+      .attr("height", currsel.attr("height"))
+      .attr("width", currsel.attr("width"))
+      .style("fill", "none")
+      .style("stroke", "#000")
+      .style("stroke-width", "3px")
+			.style("pointer-events","none")
+      .attr("x", currsel.attr("x"))
+			.attr("transform","translate(30,"+(dvc.margin.top + 20)+")");
+
+    d3.select(this).classed("highlighted",true);
+
+	  //d3.select("#info").html("This day for marriages was ranked number " + rank +" out of 366 with an average of " + d3.format(dvc.essential.tooltipFormat)(evt.amt) + " marriages on this day between 1996 and 2016.");
+     d3.select("#keyunit").transition().duration(500).attr("x",x(evt.amt)).text(d3.format(dvc.essential.tooltipFormat)(evt.amt))
+     d3.select("#keybar").transition().duration(500).attr("x",x(evt.amt)).attr("width", 3);
+}
+
+
+function removeInfo(){
+		//	d3.select(".highlighted").classed("highlighted",false);
+      d3.select("#highlightedSquare").remove()
+      d3.select("#info").html("&nbsp;");
+      d3.select("#keyunit").transition().duration(500).attr("x",x(0)).text("");
+      d3.select("#keybar").transition().duration(500).attr("x",x(0)).attr("width", 0);
+
+}
+
+function createKey(){
+
+		var keywidth = graphic_width + dvc.margin.left;
+
+		var svgkey = d3.select("#legnd")
+			.append("svg")
+			.attr("id", "key");
+
+		var legendColor = d3.scaleThreshold()
+		   .domain(breaks)
+		   .range(dvc.colour.slice(1));
+
+		x = d3.scaleLinear()
+		   .domain([breaks[0],breaks[breaks.length-1]])
+			.range([0, +keywidth+20]);
+
+		var xAxis = d3.axisBottom(x)
+    		.tickSize(15)
+		    .tickValues(legendColor.domain());
+			//.tickFormat(d3.format(".1f"));
+
+		//horizontal key
+
+		var horizKey = svgkey.append("g").attr("id","horiz")//.attr("class","visible-xs")
+
+		horizKey.attr("transform", "translate(20,20)");
+
+		horizKey.selectAll("rect")
+			.data(legendColor.range().map(function(d, i) {			  //console.log(d);
+				return {
+					x0: i ? x(legendColor.domain()[i]) : x.range()[0],
+					x1: i < legendColor.domain().length ? x(legendColor.domain()[i+1]) : x.range()[1],
+					z: d
+				};
+			}))
+		  	.enter().append("rect")
+			.attr("height", 8)
+			.attr("x", function(d) {  return d.x0; })
+			.attr("width", function(d) {  return d.x1 - d.x0; })
+			.style("fill", function(d) { return d.z; });
+
+		// how does this effect the key values??
+		horizKey.call(xAxis).append("text")
+			.attr("id", "caption")
+			//.attr("x", -63)
+			//.attr("y", -20)
+			.text("");
+
+		horizKey.append("rect")
+			.attr("id","keybar")
+			.attr("width",3)
+			.attr("height",10)
+			.style("fill", "#000")
+			.attr("x",x(0));
+
+  	forma = d3.format(",.1f");
+		// every other value is dropped down to make room
+		//d3.select("#horiz").selectAll("text").attr("transform",function(d,i){if(i % 2){return "translate(0,7)"}});
+
+		horizKey.append("text").attr("id","keyunit").attr("x",x(0)).text(" "/*forma(dvc.unittext)*/).attr("transform","translate(0,-5)");
+
+
+
+}  // end key Function
+
+
+		//check whether browser can cope with svg
+		if (Modernizr.svg) {
+		   //load config
+			d3.json("config.json", function(error, config) {
+			dvc = config;
+
+
+          //load chart data
+  				d3.csv(dvc.essential.graphic_data_url[1], function(error, data) {
+  				graphic_data = data;
+                  	//use pym to create iframed chart dependent on specified variables
+  									pymChild = new pym.Child({ renderCallback: drawGraphic});
+  				})
+
+			})
+
+		} else {
+			 //use pym to create iframe containing fallback image (which is set as default)
+			 pymChild = new pym.Child();
+			if (pymChild) {
+							pymChild.sendHeight();
+						  }
+		}
+    </script>
+</body>
+</html>
