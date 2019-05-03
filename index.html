@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +10,10 @@
 <link rel="stylesheet" href="./lib/globalStyle.css" />
 <link type="text/css" href="./lib/styles.css" rel="stylesheet" />
 <style type="text/css">
+
+		body {
+			max-width: 950px;
+		}
 
 		.row {
 			  margin-left: 0px;
@@ -82,6 +85,27 @@
 									text-anchor: end;
 								}
 
+								.smallfigsoverall{
+											position:relative;
+
+										}
+
+						.sectitle {
+								font-size: 14px;
+								font-weight: 400;
+						}
+
+						.secsubtitle {
+								font-size: 14px;
+								font-weight: 600;
+						}
+
+						.secsubtitle2 {
+								border-top: 1px solid black;
+								font-size: 14px;
+								font-weight: 400;
+						}
+
 						.footer{
 							position:relative;
 							font-size: 14px;
@@ -141,6 +165,7 @@
 			float:right;
 			overflow: scroll;
 		}
+
 
     </style>
 </head>
@@ -414,6 +439,7 @@
 				.style("pointer-events","none")
 				.append("svg")
 				.attr("id","fixedfade")
+				.attr("width","100px")
 				.attr("height",myHeight)
 				.append("defs")
 				.attr("id","defss")
@@ -513,7 +539,7 @@
 
 
 				// scroll to far leftRightTitles
-				$('#right').scrollLeft($(document).outerWidth());
+				$('#right').scrollLeft(1000);
 
 				//Apply filter maskContentUnits
 				d3.select("#fixedfade")
@@ -559,6 +585,32 @@
 												})
 							.html(function(d,i) {return d.yvals})
 							.attr("transform", function(){return "translate("+(dvc.margin.left)+","+(dvc.margin.top + 37)+")"});
+
+					counter = 0;
+					indexed = 0;
+
+					d3.select("#smallfigsleft").append('g')
+							.selectAll('text')
+							.append('g')
+							.attr("width", dvc.margin.left)
+						.data(graphic_data)
+						.enter()
+						.append("text")
+						.style("fill", "#666")
+						.attr('class', 'smallfigsoverall')
+						.attr("text-anchor","start")
+						.attr("y",  function(d,i) {
+											return (i*(dvc.brickHeight));
+						})
+						.html(function(d,i) {
+							if(i == counter) {
+								indexed++;
+								counter = counter + dvc.essential.section[indexed];
+								return "<tspan class='sectitle' x=0>" + dvc.essential.sectionLabels[indexed-1][0] + "</tspan>" + "<tspan class='secsubtitle' x=0 dy=25>" + dvc.essential.sectionLabels[indexed-1][1] + "</tspan>" + "<tspan class='secsubtitle2' x=0 dy=25>" + dvc.essential.sectionLabels[indexed-1][2] + "</tspan>";
+							}
+						})
+						.attr("transform", function(){return "translate(0,"+(dvc.margin.top + 37)+")"})
+
 
         //wrap labels for small
       	// if(graphic.width() < dvc.optional.tabletBreakpoint) {
@@ -633,6 +685,8 @@ function createKey(){
 
 		var keywidth = graphic_width + dvc.margin.left;
 
+		console.log(keywidth)
+
 		var svgkey = d3.select("#legnd")
 			.append("svg")
 			.attr("id", "key");
@@ -643,12 +697,12 @@ function createKey(){
 
 		x = d3.scaleLinear()
 		   .domain([breaks[0],breaks[breaks.length-1]])
-			.range([0, +keywidth+20]);
+			.range([0, +keywidth-45]);
 
 		var xAxis = d3.axisBottom(x)
     		.tickSize(15)
-		    .tickValues(legendColor.domain());
-			//.tickFormat(d3.format(".1f"));
+		    .tickValues(legendColor.domain())
+			  .tickFormat(d3.format(".1f"));
 
 		//horizontal key
 
