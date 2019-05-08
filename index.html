@@ -31,14 +31,15 @@
 				/*background-color: #abc;*/
 			}
 
-			#key text{
+			.tick text{
 				  stroke:none;
           font-family: "Open Sans";
-          fill:#666;
+					font-size:14px;
+          fill:#323132;
 			}
 
       .tick line {
-          stroke: #666;
+          stroke: #323132;
       }
 
 			#infoPanel
@@ -74,13 +75,13 @@
 
 						.figures{
 							position:relative;
-							font-size: 12px;
+							font-size: 14px;
 							font-weight:400;
 							text-anchor: middle;
 						}
 						.smallfigs{
 									position:relative;
-									font-size: 12px;
+									font-size: 14px;
 									font-weight:400;
 									text-anchor: end;
 								}
@@ -92,12 +93,12 @@
 
 						.sectitle {
 								font-size: 14px;
-								font-weight: 400;
+								font-weight: 600;
 						}
 
 						.secsubtitle {
 								font-size: 14px;
-								font-weight: 600;
+								font-weight: 400;
 						}
 
 						.secsubtitle2 {
@@ -116,16 +117,20 @@
 
 		@media screen and (max-width: 500px) {
 				.infoText{
-						font-size: 14px;
+						font-size: 12px;
 						}
 				.smallfigs{
-							font-size: 11px;
+							font-size: 12px;
 							font-weight:400;
 						}
 
-          .figures{
-            font-size: 11px;
+          .figures, .sectitle, .secsubtitle, .secsubtitle2 {
+            font-size: 12px;
           }
+
+					.tick text {
+						font-size: 12px;
+					}
 
 				g.tick major text{
 							font-size:14px;
@@ -137,9 +142,21 @@
 		{
 				position: relative;
 		}
+
+		::-webkit-scrollbar {
+		  -webkit-appearance: none;
+		  width: 10px;
+		}
+
+		::-webkit-scrollbar-thumb {
+		  border-radius: 5px;
+		  background-color: rgba(0,0,0,.5);
+		  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
+		}
 			#grid
 			{
 					position: relative;
+					overflow-x:scroll;
 			}
 
 		.highlighted {
@@ -153,8 +170,9 @@
 		}
 
     #keyunit{
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 700;
+			fill: #323132
     }
 
 		#left {
@@ -166,6 +184,12 @@
 			overflow: scroll;
 		}
 
+		@media (max-width: 599px) {
+			body {
+				font-size:12px !important;
+			}
+		}
+
 
     </style>
 </head>
@@ -173,7 +197,7 @@
 
 <div id="graphic">
 <img id="fallback" src="fallback.png" alt="[Chart]" />
-<div class="row" id="infoPanel"></div>
+<!-- <div class="row" id="infoPanel"></div> -->
 <div class="row">
 <div class="col-xs-12" id="legnd"></div>
 <div id="left"></div>
@@ -230,7 +254,8 @@
 		legnd.empty();
 		footer.empty();
 		dvc.brickWidth = 7.5;
-		dvc.brickHeight = 30;
+		dvc.brickHeight = 25;
+		rowgap = 30;
 
 		dvc.names = d3.keys(graphic_data[0])
 
@@ -361,7 +386,7 @@
 		myWidth = dvc.brickWidth * (Object.keys(block2).length) + dvc.margin.right;
 
 		myColumn = dvc.numbers.length;
-		myHeight = (myColumn -1)*dvc.brickHeight + dvc.margin.top + dvc.margin.bottom;
+		myHeight = (myColumn -1)*dvc.brickHeight + (rowgap * (dvc.essential.section.length-1))+ dvc.margin.top + dvc.margin.bottom;
 		// divided by '2' because the blocks are rectangular
 		//console.log('myh  ' + myHeight);
 
@@ -411,6 +436,7 @@
 			.attr("height", myHeight)
 
 
+
 		  d3.select("#right")
 			.style("width",  graphic_width + "px")
 			.append("svg")
@@ -435,7 +461,7 @@
 			d3.select("#fixed")
 				.style("position","absolute")
 				.style("left",dvc.margin.left + "px")
-				.style("top","100px")
+				.style("top","80px")
 				.style("pointer-events","none")
 				.append("svg")
 				.attr("id","fixedfade")
@@ -496,7 +522,7 @@
 					   	.data(function(d,i){return d.value})  // just give me the 'values' for each month/column. 'keys' not required
 							.enter()
 							.append("rect")
-							.attr("class","square")
+							.attr("class",function(d,i){return "square squares" + i })
               .attr("data_value",function(d,i){return d.amt})
 							.attr("id", function(d,i,j) {return "sqr" +i; } )
 							.attr("x", function(d,i,j) {
@@ -509,9 +535,17 @@
 								}
 							})
 							.attr("y",  function(d,i) {
-														return i*(dvc.brickHeight);
-														})
-							.attr("height", dvc.brickHeight )
+								if(i == 0) {
+									indexed=0;
+									counter=0;
+								}
+								if(i == counter) {
+									indexed++;
+									counter = counter + dvc.essential.section[indexed-1];
+								}
+								return (((i)*(dvc.brickHeight)) +((indexed-1)*rowgap));
+							})
+							.attr("height", dvc.brickHeight)
 							.attr("width", function(d,i) {
 							//	console.log(graphic_data[i].period)
 								if(graphic_data[i].period == "quarter") {
@@ -536,6 +570,33 @@
 							.on("mouseout",removeInfo)
 							.on("mouseover", updateInfo)
 							.attr("transform","translate(30,"+(dvc.margin.top + 20)+")");  // plus string width
+
+				d3.select("#smallfigsleft")
+					.append("g")
+					.selectAll("line")
+					.data(dvc.essential.section)
+					.enter()
+					.append("line")
+					.attr("x1",0)
+					.attr("x2",dvc.margin.left)
+					.attr("y1", function(d,i) {
+						if(i==0) {
+							runningtot = 0;
+						}
+							runningtot = runningtot + dvc.essential.section[i]
+							console.log(runningtot)
+							return (dvc.brickHeight * (runningtot+1)) + (i*rowgap) + (rowgap/2) + dvc.margin.top;
+						})
+					.attr("y2", function(d,i) {
+						if(i==0) {
+							runningtot = 0;
+						}
+								runningtot = runningtot + dvc.essential.section[i];
+								console.log(runningtot)
+								return (dvc.brickHeight * (runningtot+1)) + (i*rowgap) + (rowgap/2) + dvc.margin.top;
+							})
+					.attr("stroke","#666")
+					.attr("stroke-width","1px");
 
 
 				// scroll to far leftRightTitles
@@ -578,16 +639,24 @@
 							.enter()
 							.append("text")
 							.attr("width", dvc.margin.left)
-							.style("fill", "#666")
+							.style("fill", "#323132")
 							.attr('class', 'smallfigs')
 							.attr("y",  function(d,i) {
-												return (i*(dvc.brickHeight));
-												})
+								if(i == 0) {
+									indexed=0;
+									counter=0;
+								}
+
+								if(i == counter) {
+									indexed++;
+									counter = counter + dvc.essential.section[indexed-1];
+								}
+								return ((i*(dvc.brickHeight)) + ((indexed-1)*rowgap));
+							})
 							.html(function(d,i) {return d.yvals})
 							.attr("transform", function(){return "translate("+(dvc.margin.left)+","+(dvc.margin.top + 37)+")"});
 
-					counter = 0;
-					indexed = 0;
+
 
 					d3.select("#smallfigsleft").append('g')
 							.selectAll('text')
@@ -596,18 +665,35 @@
 						.data(graphic_data)
 						.enter()
 						.append("text")
-						.style("fill", "#666")
+						.style("fill", "#323132")
 						.attr('class', 'smallfigsoverall')
 						.attr("text-anchor","start")
-						.attr("y",  function(d,i) {
-											return (i*(dvc.brickHeight));
-						})
+						// .attr("y",  function(d,i) {
+						// 					return ((i*(dvc.brickHeight)) + (indexed*10));
+						// })
 						.html(function(d,i) {
+							if(i == 0) {
+								indexed=0;
+								counter=0;
+							}
 							if(i == counter) {
 								indexed++;
-								counter = counter + dvc.essential.section[indexed];
+								console.log(i)
+								counter = counter + dvc.essential.section[indexed-1];
 								return "<tspan class='sectitle' x=0>" + dvc.essential.sectionLabels[indexed-1][0] + "</tspan>" + "<tspan class='secsubtitle' x=0 dy=25>" + dvc.essential.sectionLabels[indexed-1][1] + "</tspan>" + "<tspan class='secsubtitle2' x=0 dy=25>" + dvc.essential.sectionLabels[indexed-1][2] + "</tspan>";
 							}
+						})
+						.attr("y",  function(d,i) {
+							if(i == 0) {
+								indexed=0;
+								counter=0;
+							}
+
+							if(i == counter) {
+								indexed++;
+								counter = counter + dvc.essential.section[indexed-1];
+											return ((i*(dvc.brickHeight)) + ((indexed-1)*rowgap));
+								}
 						})
 						.attr("transform", function(){return "translate(0,"+(dvc.margin.top + 37)+")"})
 
@@ -616,6 +702,13 @@
       	// if(graphic.width() < dvc.optional.tabletBreakpoint) {
 				d3.selectAll('text.smallfigs')//.call(wrap, dvc.margin.left)//+25);
 				// }
+
+
+
+
+
+
+
 
 		// add the info divs to populate in tellMe
 
@@ -669,11 +762,47 @@ function updateInfo(evt){
 	  //d3.select("#info").html("This day for marriages was ranked number " + rank +" out of 366 with an average of " + d3.format(dvc.essential.tooltipFormat)(evt.amt) + " marriages on this day between 1996 and 2016.");
      d3.select("#keyunit").transition().duration(500).attr("x",x(evt.amt)).text(d3.format(dvc.essential.tooltipFormat)(evt.amt))
      d3.select("#keybar").transition().duration(500).attr("x",x(evt.amt)).attr("width", 3);
+
+classnames = d3.select(this).attr("class");
+classi = classnames.split(" ")[1];
+classnum = classi.split("squares")[1];
+runningtot2 =0;
+
+		 d3.select("#xaxis2").attr("transform",function(d,i){
+
+			 for(j=0; j<dvc.essential.section.length; j++) {
+
+				 console.log(runningtot2)
+
+				 if(classnum>=runningtot2 && classnum< (runningtot2+dvc.essential.section[j])) {
+					 	console.log(j)
+						return "translate(30," + eval(dvc.margin.top + 20 + (runningtot2*dvc.brickHeight) + (j*rowgap)) + ")";
+				 }
+				 runningtot2 = runningtot2 + dvc.essential.section[j];
+			 }
+
+			 console.log(+classnum)
+
+			//return "translate(30," + 200 + ")"
+		 });
+		 //
+		 // .attr("y",  function(d,i) {
+			//  if(i == 0) {
+			// 	 indexed=0;
+			// 	 counter=0;
+			//  }
+			//  if(i == counter) {
+			// 	 indexed++;
+			// 	 counter = counter + dvc.essential.section[indexed-1];
+			//  }
+			//  return (((i)*(dvc.brickHeight)) +((indexed-1)*rowgap));
+		 // })
 }
 
 
 function removeInfo(){
 		//	d3.select(".highlighted").classed("highlighted",false);
+			d3.select("#xaxis2").attr("transform","translate(30," + (dvc.margin.top + 20) +")");
       d3.select("#highlightedSquare").remove()
       d3.select("#info").html("&nbsp;");
       d3.select("#keyunit").transition().duration(500).attr("x",x(0)).text("");
