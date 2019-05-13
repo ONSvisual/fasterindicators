@@ -3,6 +3,7 @@
             "graphic_data_url": ["data_mobile.csv", "data_desktop.csv"],
             "sourceText":["Faster indicators, Office for National Statistics"],
             "varcolour": ["#fff","#008080","#7fbdbd","#f7f7f7","#fbcb9c","#ff9933"],
+            "direction":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1],
             "section": [4,4,5,5,4],
             "sectionLabels":[["VAT diffusion index SA","Quarter-on-Quarter","Turnover"],["VAT diffusion index NSA","Quarter-on-year ago","Turnover"],["VAT diffusion index SA","Month-on-Month","Turnover"],["VAT diffusion index NSA","Month-on-year ago","Turnover"],["Other indices","Record Types SA","Turnover"]],
             "numberBreaks":5,

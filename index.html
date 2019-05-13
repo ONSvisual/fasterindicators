@@ -319,7 +319,12 @@
 			distances[i] = [];
 			eachrow.forEach(function(d,j){
 				//console.log(means[i]);
-						distances[i].push((d - means[i]) / stdDev[i]);
+				if(dvc.essential.direction[i] == 1) {
+					distances[i].push(-1*(d - means[i]) / stdDev[i]);
+				} else {
+					distances[i].push((d - means[i]) / stdDev[i]);
+				}
+
 			});
 		})
 
@@ -443,6 +448,30 @@
 			.attr("id","grid")
 			.attr("width", myWidth)
 			.attr("height", myHeight)
+			.call(d3.drag()
+				.on("start", dragstarted)
+				.on("drag", dragged)
+				.on("end", dragended)
+			);
+
+			righty = document.getElementById("right")
+
+			function dragstarted(d) {
+				startx = d3.event.x;
+				startLeft = righty.scrollLeft
+				d3.select(this).style("cursor", "grab");
+			}
+
+			function dragged(d) {
+			  xdifference = startx - d3.event.x;
+
+				$('#right').scrollLeft(startLeft + xdifference);
+			}
+
+			function dragended(d) {
+			  d3.select(this).style("cursor", "default");
+			}
+
 			// .attr("transform", "translate(0," + dvc.margin.top + ")");
 
 		//
@@ -653,12 +682,12 @@
 								}
 								return ((i*(dvc.brickHeight)) + ((indexed-1)*rowgap));
 							})
-							.html(function(d,i) {return d.yvals})
+							.text(function(d,i) {return d.yvals})
 							.attr("transform", function(){return "translate("+(dvc.margin.left)+","+(dvc.margin.top + 37)+")"});
 
 
 
-					d3.select("#smallfigsleft").append('g')
+					tspans = d3.select("#smallfigsleft").append('g')
 							.selectAll('text')
 							.append('g')
 							.attr("width", dvc.margin.left)
@@ -668,21 +697,6 @@
 						.style("fill", "#323132")
 						.attr('class', 'smallfigsoverall')
 						.attr("text-anchor","start")
-						// .attr("y",  function(d,i) {
-						// 					return ((i*(dvc.brickHeight)) + (indexed*10));
-						// })
-						.html(function(d,i) {
-							if(i == 0) {
-								indexed=0;
-								counter=0;
-							}
-							if(i == counter) {
-								indexed++;
-								console.log(i)
-								counter = counter + dvc.essential.section[indexed-1];
-								return "<tspan class='sectitle' x=0>" + dvc.essential.sectionLabels[indexed-1][0] + "</tspan>" + "<tspan class='secsubtitle' x=0 dy=25>" + dvc.essential.sectionLabels[indexed-1][1] + "</tspan>" + "<tspan class='secsubtitle2' x=0 dy=25>" + dvc.essential.sectionLabels[indexed-1][2] + "</tspan>";
-							}
-						})
 						.attr("y",  function(d,i) {
 							if(i == 0) {
 								indexed=0;
@@ -695,7 +709,89 @@
 											return ((i*(dvc.brickHeight)) + ((indexed-1)*rowgap));
 								}
 						})
-						.attr("transform", function(){return "translate(0,"+(dvc.margin.top + 37)+")"})
+						.attr("transform", function(){return "translate(0,"+(dvc.margin.top + 37)+")"});
+						// .attr("y",  function(d,i) {
+						// 					return ((i*(dvc.brickHeight)) + (indexed*10));
+						// })
+
+					tspans.append("tspan")
+						.attr("class","sectitle")
+						.attr("x","0")
+						//.attr("dy","25")
+						.text(function(d,i) {
+							if(i == 0) {
+								indexed=0;
+								counter=0;
+							}
+							if(i == counter) {
+								indexed++;
+								console.log(i)
+								counter = counter + dvc.essential.section[indexed-1];
+								return dvc.essential.sectionLabels[indexed-1][0];
+							}
+						})
+
+
+
+						tspans.append("tspan")
+							.attr("class","secsubtitle")
+							.attr("x","0")
+							.attr("dy","25")
+							.text(function(d,i) {
+								if(i == 0) {
+									indexed=0;
+									counter=0;
+								}
+								if(i == counter) {
+									indexed++;
+									console.log(i)
+									counter = counter + dvc.essential.section[indexed-1];
+									return dvc.essential.sectionLabels[indexed-1][1];
+								}
+							})
+							// .attr("y",  function(d,i) {
+							// 	if(i == 0) {
+							// 		indexed=0;
+							// 		counter=0;
+							// 	}
+							//
+							// 	if(i == counter) {
+							// 		indexed++;
+							// 		counter = counter + dvc.essential.section[indexed-1];
+							// 					return ((i*(dvc.brickHeight)) + ((indexed-1)*rowgap));
+							// 		}
+							// })
+							//.attr("transform", function(){return "translate(0,"+(dvc.margin.top + 37)+")"})
+
+							tspans.append("tspan")
+								.attr("class","secsubtitle2")
+								.attr("x","0")
+								.attr("dy","25")
+								.text(function(d,i) {
+									if(i == 0) {
+										indexed=0;
+										counter=0;
+									}
+									if(i == counter) {
+										indexed++;
+										console.log(i)
+										counter = counter + dvc.essential.section[indexed-1];
+										return dvc.essential.sectionLabels[indexed-1][2];
+									}
+								})
+								// .attr("y",  function(d,i) {
+								// 	if(i == 0) {
+								// 		indexed=0;
+								// 		counter=0;
+								// 	}
+								//
+								// 	if(i == counter) {
+								// 		indexed++;
+								// 		counter = counter + dvc.essential.section[indexed-1];
+								// 					return ((i*(dvc.brickHeight)) + ((indexed-1)*rowgap));
+								// 		}
+								// })
+								//.attr("transform", function(){return "translate(0,"+(dvc.margin.top + 37)+")"})
 
 
         //wrap labels for small
